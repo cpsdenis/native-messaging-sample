@@ -1,0 +1,52 @@
+# Logs and local configurations
+*.log
+.env
+.env.local
+
+# ==============================================================================
+# Operating System & IDE Files
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+*.lnk
+
+# IDEs and Editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# ==============================================================================
+# Web Extension (Frontend) Dependencies & Build Outputs
+# ==============================================================================
+node_modules/
+/dist/
+/build/
+/out/
+.npm/
+*.pem 
+
+# --- C++ / Build Tools ---
+# Debug/
+# Release/
+# x64/
+# x86/
+# *.o
+# *.obj
+# *.exe
+# *.dll
+# *.so
+# *.dylib
+# .cmake/
+# CMakeLists.txt.user
