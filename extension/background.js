@@ -10,14 +10,15 @@ function connectToNativeHost() {
   });
 
   nativePort.onDisconnect.addListener(() => {
+    var errmsg = "Disconnected from native host."
     if (chrome.runtime.lastError) {
-      const errmsg = "Disconnected from native host. \
-          Native Messaging Error: " + chrome.runtime.lastError.message;
-      console.error(errmsg);
-      chrome.runtime.sendMessage({ type: "FROM_HOST", data: errmsg });
+      errmsg += " Native Messaging Error: " + chrome.runtime.lastError.message;
+    } else if (nativePort.error) {
+      errmsg += " Native disconnected due to an error: " + nativePort.error;
     } else {
-      console.log("Port disconnected normally by app exit or garbage collection.");
+      errmsg += " Port disconnected normally by app exit or garbage collection.";
     }
+    chrome.runtime.sendMessage({ type: "FROM_HOST", data: errmsg });
     nativePort = null;
   });
 }
@@ -27,10 +28,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (!nativePort) {
       connectToNativeHost();
     }
-    
+
     nativePort.postMessage({ text: request.payload });
     sendResponse({ status: "Sent to C++ pipeline" });
   }
-  return true; 
+  return true;
 });
 
