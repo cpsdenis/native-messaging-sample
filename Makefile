@@ -11,6 +11,7 @@ endif
 
 ifeq ($(UNAME_S), Darwin)
     # macOS
+	BINARY_SRC        := build/host/src/$(BINARY_NAME)
     MANIFEST_FILENAME := io.github.cpsdenis.macos.json
     BINARY_DST        := /usr/local/bin/$(BINARY_NAME)
     SYS_CHROME_DIR    := /Library/Google/Chrome/NativeMessagingHosts
@@ -21,16 +22,18 @@ ifeq ($(UNAME_S), Darwin)
     SED_INPLACE       := sed -i ''
 else ifeq ($(UNAME_S), Windows)
     # Windows (Run via Git Bash or MSYS2)
-    MANIFEST_FILENAME := io.github.cpsdenis.windows.json
-    BINARY_DST        := C:/Program Files/$(BINARY_NAME)/$(BINARY_NAME).exe
-    # Registry keys are used on Windows instead of specific directories,
-    # but we store the JSON in the program folder for simplicity.
+	BINARY_SRC        := build/host/src/Debug/$(BINARY_NAME).exe
+    MANIFEST_FILENAME := io.github.cpsdenis.win.json
+    BINARY_DST_FOLDER := C:/nmsample/
+    BINARY_DST        := $(BINARY_DST_FOLDER)/$(BINARY_NAME).exe
+	REG_KEY           := "HKCU\\SOFTWARE\\Google\\Chrome\\NativeMessagingHosts\\io.github.cpsdenis"
     USER_CHROME_DIR   := $(USERPROFILE)/.config/google-chrome/NativeMessagingHosts
     NPROC             := $(NUMBER_OF_PROCESSORS)
     SUDO              := 
     SED_INPLACE       := sed -i
 else
     # Linux
+	BINARY_SRC        := build/host/src/$(BINARY_NAME)
     MANIFEST_FILENAME := io.github.cpsdenis.linux.json
     BINARY_DST        := /usr/local/bin/$(BINARY_NAME)
     SYS_CHROME_DIR    := /etc/opt/chrome/native-messaging-hosts
@@ -41,7 +44,6 @@ else
     SED_INPLACE       := sed -i
 endif
 
-BINARY_SRC   := build/host/src/$(BINARY_NAME)
 MANIFEST_SRC := host/$(MANIFEST_FILENAME)
 
 .PHONY: help
@@ -68,23 +70,8 @@ install: build ## Build and install binary and manifests (Requires sudo for syst
 	$(SUDO) chmod +x "$(BINARY_DST)"
 
 ifeq ($(UNAME_S), Windows)
-	@echo "Windows detected. Injecting path and updating Registry..."
-	@# Double escape backslashes for Windows JSON format
-	$(eval ESCAPED_PATH := $(subst /,\\,$(BINARY_DST)))
-	$(eval ESCAPED_PATH := $(subst \\,\\\\,$(ESCAPED_PATH)))
-	
-	@# Update the JSON manifest with the absolute path
-	mkdir -p "build/manifest"
-	cp "$(MANIFEST_SRC)" "build/manifest/$(MANIFEST_DST)"
-	$(SED_INPLACE) 's|__PATH__|$(ESCAPED_PATH)|g' "build/manifest/$(MANIFEST_DST)"
-	
-	@# Move manifest to target destination
-	mkdir -p "$(USER_CHROME_DIR)"
-	cp "build/manifest/$(MANIFEST_DST)" "$(USER_CHROME_DIR)/$(MANIFEST_DST)"
-	
-	@# Register the host in Windows Registry
-	powershell -Command "New-Item -Path 'HKCU:\Software\Google\Chrome\NativeMessagingHosts' -Name 'io.github.cpsdenis' -Force | Out-Null"
-	powershell -Command "Set-ItemProperty -Path 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\io.github.cpsdenis' -Name '(Default)' -Value '$(shell cygpath -w $(USER_CHROME_DIR)/$(MANIFEST_DST))'"
+	cp "build/manifest/$(MANIFEST_DST)" "$(BINARY_DST_FOLDER)/$(MANIFEST_DST)"
+	reg add $(REG_KEY) //ve //d "C:\\nmsample\\io.github.cpsdenis.json" //f
 else
 	@echo "Unix detected. Injecting absolute path into manifests..."
 	mkdir -p "build/manifest"
@@ -111,8 +98,8 @@ uninstall: ## Remove installed binary and native messaging manifests
 	$(SUDO) rm -f "$(BINARY_DST)"
 
 ifeq ($(UNAME_S), Windows)
-	powershell -Command "Remove-Item -Path 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\io.github.cpsdenis' -ErrorAction SilentlyContinue"
-	rm -f "$(USER_CHROME_DIR)/$(MANIFEST_DST)"
+	reg delete $(REG_KEY) //f
+	rm -rf "$(BINARY_DST_FOLDER)"
 else
 	@echo "Removing system-wide Chrome manifest..."
 	$(SUDO) rm -f "$(SYS_CHROME_DIR)/$(MANIFEST_DST)"
