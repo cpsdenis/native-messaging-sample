@@ -80,7 +80,7 @@ uninstall: ## Remove installed binary and native messaging manifests
 	rm -f "$(BINARY_DST)"
 
 ifeq ($(UNAME_S), Windows)
-	reg delete $(REG_KEY) //f 2>nul || cd
+	reg delete $(REG_KEY) //f || cd
 	rm -rf "$(BINARY_DST_FOLDER)"
 else
 	rm -f "$(USER_CHROME_DIR)/$(MANIFEST_DST)"
