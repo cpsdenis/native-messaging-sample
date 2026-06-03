@@ -1,7 +1,7 @@
 {
   "name": "io.github.cpsdenis",
   "description": "C++ Native Messaging Echo Host",
-  "path": "/usr/local/bin/nmsample",
+  "path": "__PATH__",
   "type": "stdio",
   "allowed_origins": [
     "chrome-extension://ememhnlgcejdleilnapopgjnfbklpamf/"
