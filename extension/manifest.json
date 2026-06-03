@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "io.github.cpsdenis",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo1sP1KZZ79pceevZnplciI1HiOLKsN4fHJ4k/Ni/mPcN+b5WtEAaWAHhN46jSM8vUq9DykbCVjs1K9qYAc9XzU7NYwz5sHiVrFmw2q2KIpw71XYoTu/oA4T0quycXEv2Py+UMNUvTGRBC+GOCOjMhIQiiU6NFH3OU2zQtSL1Re7ygzx21p2omFqZNzz5O9xrLrej4HcPsy70GkrCdQ8Fjo125nHqKuEwxyB9istAYKw7TSdwoCW44ApJjTOuwWtMk40CYVSnSQgcDiQKZ6xJnpu379vBaQADsG0Xz8c+jqwpRHXACvMP3dTnJQJnxawRWl1wx0GdJ2wM7ODw+T89WwIDAQAB",
-  "version": "1.0",
+  "version": "0.1.0",
   "description": "Exchanges JSON messages with a native C++ host application.",
   "icons": {
     "16": "icon.png",
