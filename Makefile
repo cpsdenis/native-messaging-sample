@@ -18,7 +18,7 @@ ifeq ($(UNAME_S), Darwin)
     SED_INPLACE          := sed -i ''
     USER_CHROME_DIR      := $(HOME)/Library/Application Support/Google/Chrome/NativeMessagingHosts
     USER_CHROMIUM_DIR    := $(HOME)/Library/Application Support/Chromium/NativeMessagingHosts
-	NATIVE_HOST_FILE_EXT := ""
+	NATIVE_HOST_FILE_EXT := 
 else ifeq ($(UNAME_S), Windows)
     USER_DIR             := $(subst \,/,$(USERPROFILE))
     NPROC                := $(NUMBER_OF_PROCESSORS)
@@ -32,7 +32,7 @@ else
     SED_INPLACE          := sed -i
     USER_CHROME_DIR      := $(HOME)/.config/google-chrome/NativeMessagingHosts
     USER_CHROMIUM_DIR    := $(HOME)/.config/chromium/NativeMessagingHosts
-	NATIVE_HOST_FILE_EXT := ""
+	NATIVE_HOST_FILE_EXT := 
 endif
 
 NATIVE_HOST_SRC_DIR         := $(OUTPUT_DIR)/host/src
