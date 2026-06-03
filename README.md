@@ -36,6 +36,7 @@ The web extension communicates with the C++ host asynchronously. The browser spa
 ```text
 .
 ├── CMakeLists.txt
+├── Dockerfile                      # Docker build example for Linux target
 ├── extension
 │   ├── background.js
 │   ├── icon.png
@@ -136,4 +137,13 @@ purge        Uninstall and clean
 rebuild      Clean and build the binary from scratch
 reinstall    Uninstall and install
 uninstall    Remove installed binary and native messaging manifests
+```
+
+## Docker Build Example (Linux)
+
+If you want to build the project inside a clean Linux container without installing tools locally, a [Dockerfile](Dockerfile) example is included.
+
+Execute the Docker build command from the root of your repository to trigger the compiler pipeline inside an isolated workspace:
+```bash
+docker build -t nmcpp .
 ```
