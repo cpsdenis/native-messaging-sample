@@ -1,9 +1,10 @@
 .DEFAULT_GOAL := build
+VARS_DEBUG    := $(.VARIABLES)
 
-BINARY_NAME       := nmsample
-MANIFEST_DST      := io.github.cpsdenis.json
-MANIFEST_FILENAME := io.github.cpsdenis.json
-MANIFEST_SRC      := host/$(MANIFEST_FILENAME)
+NATIVE_HOST_FILE_NAME    := nmsample
+OUTPUT_DIR               := build
+HOST_MANIFEST_NAME_VALUE := io.github.cpsdenis
+HOST_MANIFEST_FILE       := $(HOST_MANIFEST_NAME_VALUE).json
 
 ifeq ($(OS),Windows_NT)
     UNAME_S := Windows
@@ -12,82 +13,106 @@ else
 endif
 
 ifeq ($(UNAME_S), Darwin)
-    # macOS
-    BINARY_SRC        := build/host/src/$(BINARY_NAME)
-    BINARY_DST        := $(HOME)/.local/bin/$(BINARY_NAME)
-    USER_CHROME_DIR   := $(HOME)/Library/Application Support/Google/Chrome/NativeMessagingHosts
-    USER_CHROMIUM_DIR := $(HOME)/Library/Application Support/Chromium/NativeMessagingHosts
-    NPROC             := $(shell sysctl -n hw.ncpu)
-    SED_INPLACE       := sed -i ''
+    USER_DIR             := $(HOME)
+    NPROC                := $(shell sysctl -n hw.ncpu)
+    SED_INPLACE          := sed -i ''
+    USER_CHROME_DIR      := $(HOME)/Library/Application Support/Google/Chrome/NativeMessagingHosts
+    USER_CHROMIUM_DIR    := $(HOME)/Library/Application Support/Chromium/NativeMessagingHosts
+	NATIVE_HOST_FILE_EXT := ""
 else ifeq ($(UNAME_S), Windows)
-    # Windows (Run via Git Bash or MSYS2)
-    BINARY_SRC        := build/host/src/Debug/$(BINARY_NAME).exe
-    BINARY_DST_FOLDER := C:/nmsample/
-    BINARY_DST        := $(BINARY_DST_FOLDER)/$(BINARY_NAME).exe
-    REG_KEY           := "HKCU\\SOFTWARE\\Google\\Chrome\\NativeMessagingHosts\\io.github.cpsdenis"
-    USER_CHROME_DIR   := $(USERPROFILE)/.config/google-chrome/NativeMessagingHosts
-    NPROC             := $(NUMBER_OF_PROCESSORS)
-    SED_INPLACE       := sed -i
+    USER_DIR             := $(subst \,/,$(USERPROFILE))
+    NPROC                := $(NUMBER_OF_PROCESSORS)
+    SED_INPLACE          := sed -i
+	GOOGLE_NM_REG_KEY    := "HKCU\\SOFTWARE\\Google\\Chrome\\NativeMessagingHosts
+	NMCPP_REG_PATH       := $(GOOGLE_NM_REG_KEY)\\$(HOST_MANIFEST_NAME_VALUE)"
+	NATIVE_HOST_FILE_EXT := .exe
 else
-    # Linux
-    BINARY_SRC        := build/host/src/$(BINARY_NAME)
-    BINARY_DST        := $(HOME)/.local/bin/$(BINARY_NAME)
-    USER_CHROME_DIR   := $(HOME)/.config/google-chrome/NativeMessagingHosts
-    USER_CHROMIUM_DIR := $(HOME)/.config/chromium/NativeMessagingHosts
-    NPROC             := $(shell nproc)
-    SED_INPLACE       := sed -i
+    USER_DIR             := $(HOME)
+    NPROC                := $(shell nproc)
+    SED_INPLACE          := sed -i
+    USER_CHROME_DIR      := $(HOME)/.config/google-chrome/NativeMessagingHosts
+    USER_CHROMIUM_DIR    := $(HOME)/.config/chromium/NativeMessagingHosts
+	NATIVE_HOST_FILE_EXT := ""
 endif
+
+NATIVE_HOST_SRC_DIR         := $(OUTPUT_DIR)/host/src
+NATIVE_HOST_SRC_FULLPATH    := $(NATIVE_HOST_SRC_DIR)/$(NATIVE_HOST_FILE_NAME)$(NATIVE_HOST_FILE_EXT)
+NATIVE_HOST_DEST_DIR        := $(USER_DIR)/.local/share/$(NATIVE_HOST_FILE_NAME)
+NATIVE_HOST_DEST_FULLPATH   := $(NATIVE_HOST_DEST_DIR)/$(NATIVE_HOST_FILE_NAME)$(NATIVE_HOST_FILE_EXT)
+
+HOST_MANIFEST_SRC_DIR       := host
+HOST_MANIFEST_SRC_FULLPATH  := $(HOST_MANIFEST_SRC_DIR)/$(HOST_MANIFEST_FILE)
+HOST_MANIFEST_DEST_DIR      := $(NATIVE_HOST_DEST_DIR)
+HOST_MANIFEST_DEST_FULLPATH := $(NATIVE_HOST_DEST_DIR)/$(HOST_MANIFEST_FILE)
+HOST_MANIFEST_TEMP_DIR      := $(OUTPUT_DIR)/manifest
+HOST_MANIFEST_TEMP_FULLPATH := $(HOST_MANIFEST_TEMP_DIR)/$(HOST_MANIFEST_FILE)
 
 .PHONY: help
 help: ## Display this help screen
 	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: clean
-clean: ## Clean project
-	rm -rf build
+clean: ## Clean project output
+ifeq ($(strip $(OUTPUT_DIR)),)
+	$(error Error: OUTPUT_DIR variable is empty or not set!)
+endif
+ifeq ($(OUTPUT_DIR),/)
+	$(error Error: Attempted to delete the root directory!)
+endif
+	rm -rf "$(CURDIR)/$(OUTPUT_DIR)"
 
 .PHONY: build
-build: ## Build binary
-	cmake -S . -B build
-	cmake --build build -j$(NPROC)
+build: ## Build native host application
+	cmake -S . -B $(OUTPUT_DIR)
+	cmake --build $(OUTPUT_DIR) -j$(NPROC)
+	@echo "Build complete."
 
 .PHONY: rebuild
-rebuild: clean build ## Clean and rebuild the binary from scratch
+rebuild: clean build ## Clean and build the binary from scratch
 
 .PHONY: install
-install: build ## Build and install binary and manifests (User-space, no sudo)
-	mkdir -p "$(dir $(BINARY_DST))"
-	cp "$(BINARY_SRC)" "$(BINARY_DST)"
-	chmod +x "$(BINARY_DST)"
-	mkdir -p "build/manifest"
-	cp "$(MANIFEST_SRC)" "build/manifest/$(MANIFEST_DST)"
-	$(SED_INPLACE) 's|__PATH__|$(BINARY_DST)|g' "build/manifest/$(MANIFEST_DST)"
+install: build ## Build native host and install binary and manifests (User-space, no sudo)
+	mkdir -p "$(HOST_MANIFEST_TEMP_DIR)"
+	cp "$(HOST_MANIFEST_SRC_FULLPATH)" "$(HOST_MANIFEST_TEMP_DIR)"
+	$(SED_INPLACE) 's|__PATH__|$(NATIVE_HOST_DEST_FULLPATH)|g' "$(HOST_MANIFEST_TEMP_FULLPATH)"
+
+	mkdir -p "$(NATIVE_HOST_DEST_DIR)"
+	cp "$(NATIVE_HOST_SRC_FULLPATH)" "$(NATIVE_HOST_DEST_FULLPATH)"
+	chmod +x "$(NATIVE_HOST_DEST_FULLPATH)"
 
 ifeq ($(UNAME_S), Windows)
-	reg add $(REG_KEY) //ve //d "C:\\nmsample\\io.github.cpsdenis.json" //f
-	cp "build/manifest/$(MANIFEST_DST)" "$(BINARY_DST_FOLDER)/$(MANIFEST_DST)"
+	reg add $(NMCPP_REG_PATH) //ve //d "$(HOST_MANIFEST_DEST_FULLPATH)" //f
+	cp "$(HOST_MANIFEST_TEMP_FULLPATH)" "$(HOST_MANIFEST_DEST_FULLPATH)"
 else
 	mkdir -p "$(USER_CHROME_DIR)"
-	cp "build/manifest/$(MANIFEST_DST)" "$(USER_CHROME_DIR)/$(MANIFEST_DST)"
+	cp "$(HOST_MANIFEST_TEMP_FULLPATH)" "$(USER_CHROME_DIR)"
 
 	mkdir -p "$(USER_CHROMIUM_DIR)"
-	cp "build/manifest/$(MANIFEST_DST)" "$(USER_CHROMIUM_DIR)/$(MANIFEST_DST)"
+	cp "$(HOST_MANIFEST_TEMP_FULLPATH)" "$(USER_CHROMIUM_DIR)"
 endif
-	@echo "Installation complete."
+	@echo "Install complete."
 
 .PHONY: uninstall
 uninstall: ## Remove installed binary and native messaging manifests
-	rm -f "$(BINARY_DST)"
-
+	rm -f "$(NATIVE_HOST_DEST_FULLPATH)"
 ifeq ($(UNAME_S), Windows)
-	reg delete $(REG_KEY) //f || cd
-	rm -rf "$(BINARY_DST_FOLDER)"
+	-reg delete $(NMCPP_REG_PATH) //f
+	rm -f "$(HOST_MANIFEST_DEST_FULLPATH)"
 else
-	rm -f "$(USER_CHROME_DIR)/$(MANIFEST_DST)"
-
-	rm -f "$(USER_CHROMIUM_DIR)/$(MANIFEST_DST)"
+	rm -f "$(USER_CHROME_DIR)/$(HOST_MANIFEST_FILE)"
+	rm -f "$(USER_CHROMIUM_DIR)/$(HOST_MANIFEST_FILE)"
 endif
-	@echo "Uninstallation complete."
+	-rmdir --ignore-fail-on-non-empty "$(NATIVE_HOST_DEST_DIR)"
+	-rmdir --ignore-fail-on-non-empty "$(HOST_MANIFEST_DEST_DIR)"
+	@echo "Uninstall complete."
 
 .PHONY: reinstall
 reinstall: uninstall install ## Uninstall and install
+
+.PHONY: purge
+purge: uninstall clean ## Uninstall and clean
+	@echo "Purge complete."
+
+.PHONY: debug
+debug: ## Print local makefile variables
+	$(foreach v, $(sort $(filter-out $(VARS_DEBUG) VARS_DEBUG, $(.VARIABLES))), $(info $(v) = $($(v))))
